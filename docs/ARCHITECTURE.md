@@ -16,3 +16,9 @@
 1. Implementar conector de dados principal
 2. Expor contrato de saída
 3. Medir qualidade/cobertura
+
+
+## V0.3
+- Endpoint HTTP `/health` e `/sample`
+- Frontend consumindo endpoint com fallback local
+- Teste de contrato de payload

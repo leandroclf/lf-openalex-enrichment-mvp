@@ -3,6 +3,8 @@ services:
   app:
     image: python:3.11-slim
     working_dir: /workspace
-    command: python -c "from backend.src.service import healthcheck; print(healthcheck())"
+    command: bash -lc "pip install -r requirements-dev.txt && python -m backend.src.http_server"
     volumes:
       - ./:/workspace
+    ports:
+      - "8000:8000"
