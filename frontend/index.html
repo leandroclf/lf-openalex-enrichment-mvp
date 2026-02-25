@@ -1,8 +1,18 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><title>lf-openalex-enrichment-mvp</title></head>
+<head>
+  <meta charset="utf-8" />
+  <title>Componente V0.2</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px} pre{background:#f3f3f3;padding:12px;border-radius:8px}</style>
+</head>
 <body>
-  <h1>lf-openalex-enrichment-mvp</h1>
-  <p>Bootstrap frontend do componente. Status: em evolução.</p>
+  <h1>Componente — V0.2</h1>
+  <p>Visualização de saída do componente.</p>
+  <pre id="out">carregando...</pre>
+  <script>
+    fetch('../data/sample-output.json').then(r=>r.json()).then(d=>{
+      document.getElementById('out').textContent = JSON.stringify(d,null,2)
+    }).catch(()=>document.getElementById('out').textContent='erro ao carregar sample-output.json')
+  </script>
 </body>
 </html>
