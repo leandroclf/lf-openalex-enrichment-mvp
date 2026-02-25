@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  app:
+    image: python:3.11-slim
+    working_dir: /workspace
+    command: python -c "from backend.src.service import healthcheck; print(healthcheck())"
+    volumes:
+      - ./:/workspace

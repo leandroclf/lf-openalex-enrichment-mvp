@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Basic sanity
+        run: |
+          test -f README.md
+          test -f docs/ARCHITECTURE.md
+          test -f backend/src/service.py
+          test -f frontend/index.html
+          test -f infra/docker-compose.yml
