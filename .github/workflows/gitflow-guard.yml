@@ -1,0 +1,17 @@
+name: GitFlow Guard
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  warn-direct-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect direct push on main
+        run: |
+          echo "⚠️ Push detectado em main. Fluxo esperado: feature branch + PR + review + merge."
+          echo "Repository: lf-openalex-enrichment-mvp"
+          echo "Commit: \"
+          echo "Actor: \"
+          echo "Se não foi merge de PR, registrar ação corretiva no board operacional."

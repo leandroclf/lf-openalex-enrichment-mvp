@@ -10,3 +10,9 @@ Componente inicial do programa LF Soluções.
 1. Definir schema de dados e contrato de saída.
 2. Implementar primeira versão de ingestão.
 3. Publicar métricas mínimas de qualidade.
+
+## Governança de contribuição
+Este repositório segue **GitFlow obrigatório**:
+- branch 
+- Pull Request obrigatório
+- revisão técnica antes de merge
