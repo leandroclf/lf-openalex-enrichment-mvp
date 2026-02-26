@@ -17,3 +17,12 @@ def test_value_endpoint_response_shape():
     assert payload["accountId"] == "acc-1"
     assert payload["valueScore"] == 87.3
     assert payload["status"] == "ready"
+
+
+from backend.src.api import clamp_value_score
+
+
+def test_clamp_value_score():
+    assert clamp_value_score(-5) == 0.0
+    assert clamp_value_score(107.9) == 100.0
+    assert clamp_value_score(87.345) == 87.34

@@ -37,3 +37,11 @@ def get_value_endpoint_response(account_id, score):
         "valueScore": float(score),
         "status": "ready",
     }
+
+
+
+def clamp_value_score(score):
+    s=float(score)
+    if s < 0: return 0.0
+    if s > 100: return 100.0
+    return round(s, 2)
