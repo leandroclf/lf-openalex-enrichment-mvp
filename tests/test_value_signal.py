@@ -13,6 +13,7 @@ from backend.src.api import summarize_value_portfolio
 from backend.src.api import summarize_value_by_segment
 from backend.src.api import calculate_segment_lift_vs_baseline
 from backend.src.api import summarize_value_distribution
+from backend.src.api import estimate_high_value_rate
 
 
 def test_attribute_coverage_calculation():
@@ -94,3 +95,17 @@ def test_summarize_value_distribution():
 
 def test_summarize_value_distribution_empty():
     assert summarize_value_distribution([]) == {"high": 0, "medium": 0, "low": 0}
+
+
+def test_estimate_high_value_rate():
+    out = estimate_high_value_rate([
+        {"valueScore": 90},
+        {"valueScore": 62},
+        {"valueScore": 10},
+        {"valueScore": 82},
+    ])
+    assert out == 0.5
+
+
+def test_estimate_high_value_rate_empty():
+    assert estimate_high_value_rate([]) == 0.0

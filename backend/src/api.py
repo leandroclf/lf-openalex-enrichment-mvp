@@ -151,3 +151,11 @@ def summarize_value_distribution(accounts):
     for a in accounts or []:
         bands[classify_value_band(a.get("valueScore", 0))] += 1
     return bands
+
+
+def estimate_high_value_rate(accounts):
+    """Return share of high-value accounts in portfolio."""
+    if not accounts:
+        return 0.0
+    dist = summarize_value_distribution(accounts)
+    return round(dist["high"] / len(accounts), 4)
