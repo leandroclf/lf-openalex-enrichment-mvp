@@ -26,3 +26,13 @@ def test_clamp_value_score():
     assert clamp_value_score(-5) == 0.0
     assert clamp_value_score(107.9) == 100.0
     assert clamp_value_score(87.345) == 87.34
+
+
+from backend.src.api import build_value_endpoint_payload
+
+
+def test_build_value_endpoint_payload():
+    p = build_value_endpoint_payload("acc-9", 101, "mid-market")
+    assert p["issue"] == "ISSUE-016"
+    assert p["valueScore"] == 100.0
+    assert p["segment"] == "mid-market"

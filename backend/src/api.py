@@ -45,3 +45,13 @@ def clamp_value_score(score):
     if s < 0: return 0.0
     if s > 100: return 100.0
     return round(s, 2)
+
+
+
+def build_value_endpoint_payload(account_id, score, segment):
+    return {
+        "issue": "ISSUE-016",
+        "accountId": str(account_id),
+        "segment": str(segment),
+        "valueScore": clamp_value_score(score),
+    }
