@@ -29,6 +29,28 @@ def calculate_attribute_coverage(records, required_fields):
     return round(filled / total_checks, 4)
 
 
+def calculate_weighted_attribute_coverage(records, field_weights):
+    """Weighted coverage ratio (0..1) using field -> weight mapping."""
+    if not records or not field_weights:
+        return 0.0
+
+    normalized = {k: float(v) for k, v in field_weights.items() if float(v) > 0}
+    if not normalized:
+        return 0.0
+
+    total_weight_per_row = sum(normalized.values())
+    total_possible = len(records) * total_weight_per_row
+    covered = 0.0
+
+    for r in records:
+        for field, w in normalized.items():
+            v = r.get(field)
+            if v is not None and str(v).strip() != "":
+                covered += w
+
+    return round(covered / total_possible, 4)
+
+
 
 def get_value_endpoint_response(account_id, score):
     return {
