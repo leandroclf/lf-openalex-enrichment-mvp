@@ -55,3 +55,11 @@ def build_value_endpoint_payload(account_id, score, segment):
         "segment": str(segment),
         "valueScore": clamp_value_score(score),
     }
+
+
+
+def classify_value_band(score):
+    s = clamp_value_score(score)
+    if s >= 80: return "high"
+    if s >= 50: return "medium"
+    return "low"

@@ -36,3 +36,12 @@ def test_build_value_endpoint_payload():
     assert p["issue"] == "ISSUE-016"
     assert p["valueScore"] == 100.0
     assert p["segment"] == "mid-market"
+
+
+from backend.src.api import classify_value_band
+
+
+def test_classify_value_band():
+    assert classify_value_band(88) == "high"
+    assert classify_value_band(65) == "medium"
+    assert classify_value_band(20) == "low"
