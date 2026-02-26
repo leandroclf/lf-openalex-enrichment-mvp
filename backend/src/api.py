@@ -63,3 +63,12 @@ def classify_value_band(score):
     if s >= 80: return "high"
     if s >= 50: return "medium"
     return "low"
+
+
+
+def build_value_signal_summary(account_id, score):
+    return {
+        "accountId": str(account_id),
+        "band": classify_value_band(score),
+        "score": clamp_value_score(score),
+    }

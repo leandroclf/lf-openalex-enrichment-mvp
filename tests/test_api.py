@@ -45,3 +45,12 @@ def test_classify_value_band():
     assert classify_value_band(88) == "high"
     assert classify_value_band(65) == "medium"
     assert classify_value_band(20) == "low"
+
+
+from backend.src.api import build_value_signal_summary
+
+
+def test_build_value_signal_summary():
+    s = build_value_signal_summary("acc-22", 84.2)
+    assert s["band"] == "high"
+    assert s["score"] == 84.2
