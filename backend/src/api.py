@@ -159,3 +159,11 @@ def estimate_high_value_rate(accounts):
         return 0.0
     dist = summarize_value_distribution(accounts)
     return round(dist["high"] / len(accounts), 4)
+
+
+def calculate_coverage_delta(records, required_fields, baseline_coverage):
+    """Return percentage-point improvement vs baseline coverage."""
+    if baseline_coverage <= 0:
+        return 0.0
+    current = calculate_attribute_coverage(records, required_fields)
+    return round((current - baseline_coverage) * 100, 2)

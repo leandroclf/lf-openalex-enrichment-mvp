@@ -14,6 +14,7 @@ from backend.src.api import summarize_value_by_segment
 from backend.src.api import calculate_segment_lift_vs_baseline
 from backend.src.api import summarize_value_distribution
 from backend.src.api import estimate_high_value_rate
+from backend.src.api import calculate_coverage_delta
 
 
 def test_attribute_coverage_calculation():
@@ -109,3 +110,16 @@ def test_estimate_high_value_rate():
 
 def test_estimate_high_value_rate_empty():
     assert estimate_high_value_rate([]) == 0.0
+
+
+def test_calculate_coverage_delta():
+    records = [
+        {"title": "A", "doi": "10.1/x", "author": "Ana"},
+        {"title": "B", "doi": "", "author": "Bruno"},
+    ]
+    delta = calculate_coverage_delta(records, ["title", "doi", "author"], baseline_coverage=0.70)
+    assert delta == 13.33
+
+
+def test_calculate_coverage_delta_zero_baseline():
+    assert calculate_coverage_delta([{"title": "A"}], ["title"], baseline_coverage=0) == 0.0
