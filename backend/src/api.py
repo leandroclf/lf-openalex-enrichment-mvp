@@ -143,3 +143,11 @@ def calculate_segment_lift_vs_baseline(accounts, baseline_score):
     if base == 0:
         return 0.0
     return round(((avg - base) / base) * 100, 2)
+
+
+def summarize_value_distribution(accounts):
+    """Count accounts by value band for quick commercial reporting."""
+    bands = {"high": 0, "medium": 0, "low": 0}
+    for a in accounts or []:
+        bands[classify_value_band(a.get("valueScore", 0))] += 1
+    return bands

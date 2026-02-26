@@ -12,6 +12,7 @@ from backend.src.api import calculate_weighted_attribute_coverage
 from backend.src.api import summarize_value_portfolio
 from backend.src.api import summarize_value_by_segment
 from backend.src.api import calculate_segment_lift_vs_baseline
+from backend.src.api import summarize_value_distribution
 
 
 def test_attribute_coverage_calculation():
@@ -79,3 +80,17 @@ def test_calculate_segment_lift_vs_baseline():
 def test_calculate_segment_lift_vs_baseline_empty_or_zero_base():
     assert calculate_segment_lift_vs_baseline([], baseline_score=50) == 0.0
     assert calculate_segment_lift_vs_baseline([{"segment": "x", "valueScore": 90}], baseline_score=0) == 0.0
+
+
+def test_summarize_value_distribution():
+    out = summarize_value_distribution([
+        {"valueScore": 90},
+        {"valueScore": 62},
+        {"valueScore": 10},
+        {"valueScore": 82},
+    ])
+    assert out == {"high": 2, "medium": 1, "low": 1}
+
+
+def test_summarize_value_distribution_empty():
+    assert summarize_value_distribution([]) == {"high": 0, "medium": 0, "low": 0}
