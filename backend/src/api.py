@@ -105,3 +105,17 @@ def is_high_value_account(score):
 def score_to_percentile(score):
     s = clamp_value_score(score)
     return round(s / 100, 4)
+
+
+def summarize_value_portfolio(accounts):
+    """Aggregate portfolio stats for ISSUE-016 value endpoint consumers."""
+    if not accounts:
+        return {"total": 0, "highValueCount": 0, "avgScore": 0.0}
+
+    normalized_scores = [clamp_value_score(a.get("valueScore", 0)) for a in accounts]
+    high_value = sum(1 for s in normalized_scores if is_high_value_account(s))
+    return {
+        "total": len(accounts),
+        "highValueCount": high_value,
+        "avgScore": round(sum(normalized_scores) / len(normalized_scores), 2),
+    }

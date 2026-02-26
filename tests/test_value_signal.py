@@ -9,6 +9,7 @@ def test_value_signal_shape():
 
 from backend.src.api import calculate_attribute_coverage
 from backend.src.api import calculate_weighted_attribute_coverage
+from backend.src.api import summarize_value_portfolio
 
 
 def test_attribute_coverage_calculation():
@@ -33,3 +34,16 @@ def test_weighted_attribute_coverage_calculation():
 def test_weighted_attribute_coverage_ignores_zero_or_negative_weights():
     records = [{"title": "A"}]
     assert calculate_weighted_attribute_coverage(records, {"title": 0, "doi": -2}) == 0.0
+
+
+def test_summarize_value_portfolio():
+    out = summarize_value_portfolio([
+        {"accountId": "a1", "valueScore": 90},
+        {"accountId": "a2", "valueScore": 60},
+        {"accountId": "a3", "valueScore": 10},
+    ])
+    assert out == {"total": 3, "highValueCount": 1, "avgScore": 53.33}
+
+
+def test_summarize_value_portfolio_empty():
+    assert summarize_value_portfolio([]) == {"total": 0, "highValueCount": 0, "avgScore": 0.0}
