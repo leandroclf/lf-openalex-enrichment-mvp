@@ -10,6 +10,7 @@ def test_value_signal_shape():
 from backend.src.api import calculate_attribute_coverage
 from backend.src.api import calculate_weighted_attribute_coverage
 from backend.src.api import summarize_value_portfolio
+from backend.src.api import summarize_value_by_segment
 
 
 def test_attribute_coverage_calculation():
@@ -47,3 +48,19 @@ def test_summarize_value_portfolio():
 
 def test_summarize_value_portfolio_empty():
     assert summarize_value_portfolio([]) == {"total": 0, "highValueCount": 0, "avgScore": 0.0}
+
+
+def test_summarize_value_by_segment():
+    out = summarize_value_by_segment([
+        {"segment": "enterprise", "valueScore": 90},
+        {"segment": "enterprise", "valueScore": 40},
+        {"segment": "smb", "valueScore": 82},
+    ])
+    assert out == {
+        "enterprise": {"total": 2, "highValue": 1},
+        "smb": {"total": 1, "highValue": 1},
+    }
+
+
+def test_summarize_value_by_segment_empty():
+    assert summarize_value_by_segment([]) == {}

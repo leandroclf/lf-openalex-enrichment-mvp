@@ -119,3 +119,16 @@ def summarize_value_portfolio(accounts):
         "highValueCount": high_value,
         "avgScore": round(sum(normalized_scores) / len(normalized_scores), 2),
     }
+
+
+def summarize_value_by_segment(accounts):
+    """Count accounts by segment and high-value concentration."""
+    out = {}
+    for a in accounts or []:
+        segment = str(a.get("segment", "unknown"))
+        score = clamp_value_score(a.get("valueScore", 0))
+        bucket = out.setdefault(segment, {"total": 0, "highValue": 0})
+        bucket["total"] += 1
+        if is_high_value_account(score):
+            bucket["highValue"] += 1
+    return out
