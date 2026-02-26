@@ -123,3 +123,31 @@ def test_calculate_coverage_delta():
 
 def test_calculate_coverage_delta_zero_baseline():
     assert calculate_coverage_delta([{"title": "A"}], ["title"], baseline_coverage=0) == 0.0
+
+
+def test_batch_enrich_leads_empty():
+    from backend.src.api import batch_enrich_leads
+    result = batch_enrich_leads([])
+    assert result["stats"]["total"] == 0
+    assert result["enriched"] == []
+
+
+def test_batch_enrich_leads_with_data():
+    from backend.src.api import batch_enrich_leads
+    leads = [
+        {"company": "Acme", "domain": "acme.com", "industry": "Tech", "employee_count": 100},
+        {"company": "Beta", "domain": "", "industry": "", "employee_count": None}
+    ]
+    result = batch_enrich_leads(leads)
+    assert result["stats"]["total"] == 2
+    assert len(result["enriched"]) == 2
+    assert result["enriched"][0]["_enrichment"]["coverage"] == 1.0
+
+
+def test_enrichment_priority_score():
+    from backend.src.api import get_enrichment_priority_score
+    complete_lead = {"company": "X", "domain": "x.com", "email": "a@x.com", "industry": "Tech", "employee_count": 50}
+    incomplete_lead = {"company": "Y"}
+    
+    assert get_enrichment_priority_score(complete_lead) == 0
+    assert get_enrichment_priority_score(incomplete_lead) > 0

@@ -167,3 +167,57 @@ def calculate_coverage_delta(records, required_fields, baseline_coverage):
         return 0.0
     current = calculate_attribute_coverage(records, required_fields)
     return round((current - baseline_coverage) * 100, 2)
+
+
+def batch_enrich_leads(leads, enrichment_config=None):
+    """
+    Batch enrichment processor for B2B leads using OpenAlex data.
+    Returns enriched leads with coverage metrics.
+    """
+    if not leads:
+        return {"enriched": [], "stats": {"total": 0, "enriched_count": 0, "coverage_rate": 0.0}}
+    
+    config = enrichment_config or {"fields": ["company", "domain", "industry", "employee_count"]}
+    required_fields = config.get("fields", [])
+    
+    enriched = []
+    enriched_count = 0
+    
+    for lead in leads:
+        coverage = calculate_attribute_coverage([lead], required_fields)
+        enriched_lead = {
+            **lead,
+            "_enrichment": {
+                "coverage": coverage,
+                "processed_at": datetime.now(timezone.utc).isoformat(),
+                "source": "openalex"
+            }
+        }
+        enriched.append(enriched_lead)
+        if coverage > 0.5:
+            enriched_count += 1
+    
+    return {
+        "enriched": enriched,
+        "stats": {
+            "total": len(leads),
+            "enriched_count": enriched_count,
+            "coverage_rate": round(enriched_count / len(leads), 4) if leads else 0.0
+        }
+    }
+
+
+def get_enrichment_priority_score(lead, weights=None):
+    """
+    Calculate priority score for enrichment based on data completeness and value potential.
+    Higher score = higher priority for enrichment.
+    """
+    default_weights = {"company": 3, "domain": 2, "email": 2, "industry": 1, "employee_count": 1}
+    w = weights or default_weights
+    
+    missing_score = 0
+    for field, weight in w.items():
+        if not lead.get(field):
+            missing_score += weight
+    
+    return missing_score
