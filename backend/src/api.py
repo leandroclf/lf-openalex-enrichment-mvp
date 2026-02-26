@@ -77,3 +77,9 @@ def build_value_signal_summary(account_id, score):
 
 def is_high_value_account(score):
     return classify_value_band(score) == "high"
+
+
+
+def score_to_percentile(score):
+    s = clamp_value_score(score)
+    return round(s / 100, 4)

@@ -62,3 +62,11 @@ from backend.src.api import is_high_value_account
 def test_is_high_value_account():
     assert is_high_value_account(85) is True
     assert is_high_value_account(49) is False
+
+
+from backend.src.api import score_to_percentile
+
+
+def test_score_to_percentile():
+    assert score_to_percentile(80) == 0.8
+    assert score_to_percentile(125) == 1.0
