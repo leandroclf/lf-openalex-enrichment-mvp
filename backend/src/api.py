@@ -132,3 +132,14 @@ def summarize_value_by_segment(accounts):
         if is_high_value_account(score):
             bucket["highValue"] += 1
     return out
+
+
+def calculate_segment_lift_vs_baseline(accounts, baseline_score):
+    """Average portfolio lift versus a baseline score (pct points)."""
+    if not accounts:
+        return 0.0
+    base = clamp_value_score(baseline_score)
+    avg = summarize_value_portfolio(accounts)["avgScore"]
+    if base == 0:
+        return 0.0
+    return round(((avg - base) / base) * 100, 2)
