@@ -5,13 +5,13 @@ on:
     branches: ["main"]
 
 jobs:
-  warn-direct-main:
+  block-direct-main:
     runs-on: ubuntu-latest
     steps:
-      - name: Detect direct push on main
+      - name: Fail on direct push to main
         run: |
-          echo "⚠️ Push detectado em main. Fluxo esperado: feature branch + PR + review + merge."
-          echo "Repository: lf-openalex-enrichment-mvp"
-          echo "Commit: \"
-          echo "Actor: \"
-          echo "Se não foi merge de PR, registrar ação corretiva no board operacional."
+          echo "🚫 Direct push em main detectado. Use feature branch + PR + review + merge."
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          exit 1

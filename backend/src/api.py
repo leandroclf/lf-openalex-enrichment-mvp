@@ -27,3 +27,13 @@ def calculate_attribute_coverage(records, required_fields):
             if v is not None and str(v).strip() != "":
                 filled += 1
     return round(filled / total_checks, 4)
+
+
+
+def get_value_endpoint_response(account_id, score):
+    return {
+        "issue": "ISSUE-016",
+        "accountId": str(account_id),
+        "valueScore": float(score),
+        "status": "ready",
+    }
