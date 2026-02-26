@@ -54,3 +54,11 @@ def test_build_value_signal_summary():
     s = build_value_signal_summary("acc-22", 84.2)
     assert s["band"] == "high"
     assert s["score"] == 84.2
+
+
+from backend.src.api import is_high_value_account
+
+
+def test_is_high_value_account():
+    assert is_high_value_account(85) is True
+    assert is_high_value_account(49) is False

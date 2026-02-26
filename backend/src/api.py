@@ -72,3 +72,8 @@ def build_value_signal_summary(account_id, score):
         "band": classify_value_band(score),
         "score": clamp_value_score(score),
     }
+
+
+
+def is_high_value_account(score):
+    return classify_value_band(score) == "high"
