@@ -1,0 +1,2 @@
+# Dependencies for lf-openalex-enrichment-mvp
+# Add project dependencies here as needed
