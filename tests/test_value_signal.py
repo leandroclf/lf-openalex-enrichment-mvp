@@ -151,3 +151,7 @@ def test_enrichment_priority_score():
     
     assert get_enrichment_priority_score(complete_lead) == 0
     assert get_enrichment_priority_score(incomplete_lead) > 0
+
+def test_dummy_openalex_function():
+    from backend.src.api import dummy_openalex_function
+    assert dummy_openalex_function() == "This is a dummy function for ISSUE-001."

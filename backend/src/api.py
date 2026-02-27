@@ -221,3 +221,6 @@ def get_enrichment_priority_score(lead, weights=None):
             missing_score += weight
     
     return missing_score
+
+def dummy_openalex_function():
+    return "This is a dummy function for ISSUE-001."
