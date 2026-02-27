@@ -5,13 +5,18 @@ on:
     branches: ["main"]
 
 jobs:
-  block-direct-main:
+  # O job 'block-direct-main' foi removido em 2026-02-27 por decisão estratégica
+  # para permitir push direto na main e acelerar o fluxo de entrega.
+  # A proteção de branch via PR approval foi desativada no mesmo período.
+  #
+  # Manter o arquivo para futuras regras de governança na main.
+  
+  governance-placeholder:
     runs-on: ubuntu-latest
     steps:
-      - name: Fail on direct push to main
+      - name: Placeholder for future main branch governance
         run: |
-          echo "🚫 Direct push em main detectado. Use feature branch + PR + review + merge."
+          echo "✅ Push to main allowed. GitFlow Guard rules are currently disabled."
           echo "Repository: ${{ github.repository }}"
           echo "Commit: ${{ github.sha }}"
           echo "Actor: ${{ github.actor }}"
-          exit 1
