@@ -55,14 +55,60 @@ O desenvolvimento segue uma abordagem incremental e orientada a testes, com foco
 Para configurar e executar o projeto localmente:
 
 1.  **Clone o repositório:**
-    `git clone https://github.com/leandroclf/lf-openalex-enrichment-mvp.git`
-    `cd lf-openalex-enrichment-mvp`
+    ```bash
+    git clone https://github.com/leandroclf/lf-openalex-enrichment-mvp.git
+    cd lf-openalex-enrichment-mvp
+    ```
+
 2.  **Instale as dependências:**
-    `pip install -r requirements.txt` (se houver, ou adicione conforme necessário)
-3.  **Execute testes:**
-    `PYTHONPATH=. python3 -c "from backend.src.api import batch_enrich_leads; ..."` (Exemplo de execução de função)
-    `# Ou se pytest estiver configurado: pytest`
-    `PYTHONPATH=. python3 tools/smoke_check.py` (para smoke tests)
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+
+3.  **Execute o servidor HTTP:**
+    ```bash
+    PYTHONPATH=. python3 backend/src/http_server.py
+    # Servidor disponível em http://localhost:8000
+    ```
+
+4.  **Execute testes:**
+    ```bash
+    PYTHONPATH=. python3 tools/smoke_check.py  # smoke tests
+    PYTHONPATH=. pytest -v                      # suite completa
+    ```
+
+## Exemplos de Uso
+
+### Endpoint de Enriquecimento `/enrich`
+
+Enriqueça um lote de leads via HTTP POST:
+
+```bash
+curl -X POST http://localhost:8000/enrich \
+  -H "Content-Type: application/json" \
+  -d '{
+    "leads": [
+      {"company": "Acme Corp", "domain": "acme.com", "industry": "Tech"},
+      {"company": "Beta Inc", "domain": "", "industry": "Finance"}
+    ],
+    "config": {
+      "fields": ["company", "domain", "industry", "employee_count"]
+    }
+  }'
+```
+
+Resposta esperada:
+```json
+{
+  "enriched": [...],
+  "stats": {
+    "total": 2,
+    "enriched_count": 1,
+    "coverage_rate": 0.5
+  },
+  "processed_at": "2026-02-28T14:30:00Z"
+}
+```
 
 ## Diretrizes de Contribuição
 

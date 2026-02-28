@@ -1,14 +1,22 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from datetime import datetime, timezone
-from backend.src.api import get_sample_payload
+from backend.src.api import get_sample_payload, batch_enrich_leads
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, payload):
         self.send_response(code)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode('utf-8'))
+
+    def _read_body(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length == 0:
+            return None
+        body = self.rfile.read(content_length)
+        return json.loads(body.decode('utf-8'))
 
     def do_GET(self):
         if self.path == '/health':
@@ -20,6 +28,30 @@ class Handler(BaseHTTPRequestHandler):
             payload['generatedAtHttp']=datetime.now(timezone.utc).isoformat()
             self._send(200,payload)
             return
+        self._send(404, {'error':'not_found','path':self.path})
+
+    def do_POST(self):
+        if self.path == '/enrich':
+            try:
+                body = self._read_body()
+                if not body:
+                    self._send(400, {'error': 'missing_body'})
+                    return
+                
+                leads = body.get('leads', [])
+                config = body.get('config')
+                
+                result = batch_enrich_leads(leads, config)
+                result['processed_at'] = datetime.now(timezone.utc).isoformat()
+                self._send(200, result)
+                return
+            except json.JSONDecodeError:
+                self._send(400, {'error': 'invalid_json'})
+                return
+            except Exception as e:
+                self._send(500, {'error': 'internal_error', 'message': str(e)})
+                return
+        
         self._send(404, {'error':'not_found','path':self.path})
 
 
