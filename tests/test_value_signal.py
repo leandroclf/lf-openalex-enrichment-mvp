@@ -152,6 +152,26 @@ def test_enrichment_priority_score():
     assert get_enrichment_priority_score(complete_lead) == 0
     assert get_enrichment_priority_score(incomplete_lead) > 0
 
+def test_prioritize_leads_by_enrichment_gap_orders_by_missing_weight():
+    from backend.src.api import prioritize_leads_by_enrichment_gap
+
+    leads = [
+        {"company": "A", "domain": "a.com", "email": "a@a.com"},
+        {"company": "B"},
+        {"company": "C", "domain": "c.com", "email": "c@c.com", "industry": "Tech", "employee_count": 120},
+    ]
+
+    out = prioritize_leads_by_enrichment_gap(leads)
+    assert out[0]["company"] == "B"
+    assert out[0]["_priorityScore"] > out[1]["_priorityScore"]
+    assert out[-1]["company"] == "C"
+
+
+def test_prioritize_leads_by_enrichment_gap_empty():
+    from backend.src.api import prioritize_leads_by_enrichment_gap
+    assert prioritize_leads_by_enrichment_gap([]) == []
+
+
 def test_dummy_openalex_function():
     from backend.src.api import dummy_openalex_function
     assert dummy_openalex_function() == "This is a dummy function for ISSUE-001."

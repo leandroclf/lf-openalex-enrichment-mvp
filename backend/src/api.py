@@ -222,5 +222,21 @@ def get_enrichment_priority_score(lead, weights=None):
     
     return missing_score
 
+def prioritize_leads_by_enrichment_gap(leads, weights=None):
+    """Sort leads by enrichment priority score (desc), preserving input for ties."""
+    scored = []
+    for idx, lead in enumerate(leads or []):
+        scored.append({
+            **lead,
+            "_priorityScore": get_enrichment_priority_score(lead, weights),
+            "_inputIndex": idx,
+        })
+
+    scored.sort(key=lambda x: (-x["_priorityScore"], x["_inputIndex"]))
+    for item in scored:
+        item.pop("_inputIndex", None)
+    return scored
+
+
 def dummy_openalex_function():
     return "This is a dummy function for ISSUE-001."
