@@ -169,6 +169,18 @@ def calculate_coverage_delta(records, required_fields, baseline_coverage):
     return round((current - baseline_coverage) * 100, 2)
 
 
+def normalize_required_fields(lead, required_fields):
+    """Normalize required fields for consistent coverage checks."""
+    normalized = dict(lead or {})
+    for field in required_fields or []:
+        value = normalized.get(field)
+        if isinstance(value, str):
+            normalized[field] = value.strip()
+        elif value is None:
+            normalized[field] = ""
+    return normalized
+
+
 def batch_enrich_leads(leads, enrichment_config=None):
     """
     Batch enrichment processor for B2B leads using OpenAlex data.
@@ -176,17 +188,18 @@ def batch_enrich_leads(leads, enrichment_config=None):
     """
     if not leads:
         return {"enriched": [], "stats": {"total": 0, "enriched_count": 0, "coverage_rate": 0.0}}
-    
+
     config = enrichment_config or {"fields": ["company", "domain", "industry", "employee_count"]}
     required_fields = config.get("fields", [])
-    
+
     enriched = []
     enriched_count = 0
-    
+
     for lead in leads:
-        coverage = calculate_attribute_coverage([lead], required_fields)
+        normalized_lead = normalize_required_fields(lead, required_fields)
+        coverage = calculate_attribute_coverage([normalized_lead], required_fields)
         enriched_lead = {
-            **lead,
+            **normalized_lead,
             "_enrichment": {
                 "coverage": coverage,
                 "processed_at": datetime.now(timezone.utc).isoformat(),
@@ -196,7 +209,7 @@ def batch_enrich_leads(leads, enrichment_config=None):
         enriched.append(enriched_lead)
         if coverage > 0.5:
             enriched_count += 1
-    
+
     return {
         "enriched": enriched,
         "stats": {

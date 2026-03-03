@@ -144,6 +144,31 @@ def test_batch_enrich_leads_with_data():
     assert result["enriched"][0]["_enrichment"]["coverage"] == 1.0
 
 
+def test_normalize_required_fields_trims_and_fills_missing():
+    from backend.src.api import normalize_required_fields
+
+    lead = {"company": "  Acme  ", "domain": None, "industry": " Tech "}
+    out = normalize_required_fields(lead, ["company", "domain", "industry", "employee_count"])
+
+    assert out["company"] == "Acme"
+    assert out["domain"] == ""
+    assert out["industry"] == "Tech"
+    assert out["employee_count"] == ""
+
+
+def test_batch_enrich_leads_applies_required_field_normalization():
+    from backend.src.api import batch_enrich_leads
+
+    leads = [{"company": " Acme ", "domain": "  ", "industry": "Tech", "employee_count": None}]
+    result = batch_enrich_leads(leads)
+
+    enriched = result["enriched"][0]
+    assert enriched["company"] == "Acme"
+    assert enriched["domain"] == ""
+    assert enriched["employee_count"] == ""
+    assert enriched["_enrichment"]["coverage"] == 0.5
+
+
 def test_enrichment_priority_score():
     from backend.src.api import get_enrichment_priority_score
     complete_lead = {"company": "X", "domain": "x.com", "email": "a@x.com", "industry": "Tech", "employee_count": 50}
