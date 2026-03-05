@@ -1,0 +1,1 @@
+print("Smoke test passed for lf-openalex-enrichment-mvp!")
