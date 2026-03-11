@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+from urllib.parse import urlparse
+
+from backend.src.service import lookup_openalex_institution
 
 def get_sample_payload():
     return {
@@ -11,7 +14,23 @@ def get_sample_payload():
 
 def get_value_signal():
     payload = get_sample_payload()
-    return {"issue": "ISSUE-001", "kpi": "attribute_coverage", "targetLiftPct": 20, "component": payload["component"]}
+    return {
+        "issue": "ISSUE-001",
+        "kpi": "attribute_coverage",
+        "targetLiftPct": 20,
+        "component": payload["component"],
+    }
+
+
+def _has_text(value):
+    return value is not None and str(value).strip() != ""
+
+
+def _safe_int(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 
@@ -51,6 +70,55 @@ def calculate_weighted_attribute_coverage(records, field_weights):
     return round(covered / total_possible, 4)
 
 
+def extract_openalex_match(openalex_payload):
+    """Project the top OpenAlex result into a stable enrichment shape."""
+    if not openalex_payload:
+        return None
+
+    record = openalex_payload
+    if isinstance(openalex_payload, dict) and "results" in openalex_payload:
+        results = openalex_payload.get("results") or []
+        record = results[0] if results else None
+
+    if not isinstance(record, dict):
+        return None
+
+    geo = record.get("geo") or {}
+    concepts = record.get("x_concepts") or []
+    topic = ""
+    if concepts and isinstance(concepts[0], dict):
+        topic = str(concepts[0].get("display_name", "")).strip()
+
+    homepage_url = str(record.get("homepage_url", "")).strip()
+    homepage_domain = ""
+    if homepage_url:
+        parsed = urlparse(homepage_url)
+        homepage_domain = parsed.netloc or parsed.path
+        homepage_domain = homepage_domain.removeprefix("www.")
+
+    match = {
+        "id": str(record.get("id", "")).strip(),
+        "display_name": str(record.get("display_name", "")).strip(),
+        "country_code": str(geo.get("country_code", "")).strip(),
+        "works_count": _safe_int(record.get("works_count")),
+        "cited_by_count": _safe_int(record.get("cited_by_count")),
+        "homepage_url": homepage_url,
+        "homepage_domain": homepage_domain,
+        "topic": topic,
+    }
+
+    if not any(
+        [
+            match["id"],
+            match["display_name"],
+            match["homepage_domain"],
+            match["country_code"],
+        ]
+    ):
+        return None
+    return match
+
+
 
 def get_value_endpoint_response(account_id, score):
     return {
@@ -63,9 +131,11 @@ def get_value_endpoint_response(account_id, score):
 
 
 def clamp_value_score(score):
-    s=float(score)
-    if s < 0: return 0.0
-    if s > 100: return 100.0
+    s = float(score)
+    if s < 0:
+        return 0.0
+    if s > 100:
+        return 100.0
     return round(s, 2)
 
 
@@ -82,8 +152,10 @@ def build_value_endpoint_payload(account_id, score, segment):
 
 def classify_value_band(score):
     s = clamp_value_score(score)
-    if s >= 80: return "high"
-    if s >= 50: return "medium"
+    if s >= 80:
+        return "high"
+    if s >= 50:
+        return "medium"
     return "low"
 
 
@@ -171,7 +243,10 @@ def calculate_coverage_delta(records, required_fields, baseline_coverage):
 
 def normalize_required_fields(lead, required_fields):
     """Normalize required fields for consistent coverage checks."""
-    normalized = dict(lead or {})
+    normalized = {}
+    for field, value in dict(lead or {}).items():
+        normalized[field] = value.strip() if isinstance(value, str) else value
+
     for field in required_fields or []:
         value = normalized.get(field)
         if isinstance(value, str):
@@ -181,42 +256,124 @@ def normalize_required_fields(lead, required_fields):
     return normalized
 
 
+def merge_openalex_match(lead, match):
+    """Fill missing business fields from an OpenAlex institution match."""
+    if not match:
+        return dict(lead or {})
+
+    enriched = dict(lead or {})
+    field_map = {
+        "company": "display_name",
+        "domain": "homepage_domain",
+        "country": "country_code",
+        "industry": "topic",
+    }
+
+    for lead_field, match_field in field_map.items():
+        if not _has_text(enriched.get(lead_field)) and _has_text(match.get(match_field)):
+            enriched[lead_field] = match[match_field]
+
+    if _has_text(match.get("id")):
+        enriched["openalex_id"] = match["id"]
+    enriched["openalex_works_count"] = match.get("works_count", 0)
+    enriched["openalex_cited_by_count"] = match.get("cited_by_count", 0)
+    return enriched
+
+
+def calculate_lead_value_score(coverage, match=None):
+    """Blend data coverage with OpenAlex footprint into a 0..100 score."""
+    score = float(coverage) * 60
+    if match:
+        score += min(match.get("works_count", 0) / 5000, 1) * 20
+        score += min(match.get("cited_by_count", 0) / 20000, 1) * 20
+    return clamp_value_score(score)
+
+
 def batch_enrich_leads(leads, enrichment_config=None):
     """
     Batch enrichment processor for B2B leads using OpenAlex data.
     Returns enriched leads with coverage metrics.
     """
     if not leads:
-        return {"enriched": [], "stats": {"total": 0, "enriched_count": 0, "coverage_rate": 0.0}}
+        return {
+            "enriched": [],
+            "stats": {
+                "total": 0,
+                "enriched_count": 0,
+                "improved_count": 0,
+                "matched_count": 0,
+                "coverage_rate": 0.0,
+                "avg_coverage_before": 0.0,
+                "avg_coverage_after": 0.0,
+            },
+        }
 
-    config = enrichment_config or {"fields": ["company", "domain", "industry", "employee_count"]}
-    required_fields = config.get("fields", [])
+    config = enrichment_config or {}
+    required_fields = config.get(
+        "fields",
+        ["company", "domain", "industry", "employee_count"],
+    )
+    enable_openalex_lookup = bool(config.get("openalex_lookup"))
+    lookup_fn = config.get("lookup_fn")
+    resolver = lookup_fn
+    if resolver is None and enable_openalex_lookup:
+        resolver = lookup_openalex_institution
 
     enriched = []
     enriched_count = 0
+    improved_count = 0
+    matched_count = 0
+    total_coverage_before = 0.0
+    total_coverage_after = 0.0
 
     for lead in leads:
         normalized_lead = normalize_required_fields(lead, required_fields)
-        coverage = calculate_attribute_coverage([normalized_lead], required_fields)
+        coverage_before = calculate_attribute_coverage(
+            [normalized_lead],
+            required_fields,
+        )
+        raw_match = resolver(normalized_lead) if resolver else None
+        match = extract_openalex_match(raw_match)
+        if match:
+            matched_count += 1
+
+        merged_lead = merge_openalex_match(normalized_lead, match)
+        coverage_after = calculate_attribute_coverage([merged_lead], required_fields)
+        value_score = calculate_lead_value_score(coverage_after, match)
+
+        total_coverage_before += coverage_before
+        total_coverage_after += coverage_after
+        if coverage_after > coverage_before:
+            improved_count += 1
+        if coverage_after > 0.5:
+            enriched_count += 1
+
         enriched_lead = {
-            **normalized_lead,
+            **merged_lead,
+            "_priorityScore": get_enrichment_priority_score(normalized_lead),
             "_enrichment": {
-                "coverage": coverage,
+                "coverage": coverage_after,
+                "coverage_before": coverage_before,
                 "processed_at": datetime.now(timezone.utc).isoformat(),
-                "source": "openalex"
-            }
+                "source": "openalex" if match else "input",
+                "openalex_match": match,
+                "value_score": value_score,
+                "value_band": classify_value_band(value_score),
+            },
         }
         enriched.append(enriched_lead)
-        if coverage > 0.5:
-            enriched_count += 1
 
     return {
         "enriched": enriched,
         "stats": {
             "total": len(leads),
             "enriched_count": enriched_count,
-            "coverage_rate": round(enriched_count / len(leads), 4) if leads else 0.0
-        }
+            "improved_count": improved_count,
+            "matched_count": matched_count,
+            "coverage_rate": round(enriched_count / len(leads), 4),
+            "avg_coverage_before": round(total_coverage_before / len(leads), 4),
+            "avg_coverage_after": round(total_coverage_after / len(leads), 4),
+        },
     }
 
 
@@ -227,12 +384,12 @@ def get_enrichment_priority_score(lead, weights=None):
     """
     default_weights = {"company": 3, "domain": 2, "email": 2, "industry": 1, "employee_count": 1}
     w = weights or default_weights
-    
+
     missing_score = 0
     for field, weight in w.items():
         if not lead.get(field):
             missing_score += weight
-    
+
     return missing_score
 
 def prioritize_leads_by_enrichment_gap(leads, weights=None):
@@ -249,7 +406,3 @@ def prioritize_leads_by_enrichment_gap(leads, weights=None):
     for item in scored:
         item.pop("_inputIndex", None)
     return scored
-
-
-def dummy_openalex_function():
-    return "This is a dummy function for ISSUE-001."

@@ -2,13 +2,16 @@ from backend.src.api import get_value_signal
 
 
 def test_value_signal_shape():
-    x=get_value_signal()
-    assert x["issue"]=="ISSUE-001"
-    assert x["targetLiftPct"]==20
+    x = get_value_signal()
+    assert x["issue"] == "ISSUE-001"
+    assert x["targetLiftPct"] == 20
 
 
 from backend.src.api import calculate_attribute_coverage
 from backend.src.api import calculate_weighted_attribute_coverage
+from backend.src.api import calculate_lead_value_score
+from backend.src.api import extract_openalex_match
+from backend.src.api import merge_openalex_match
 from backend.src.api import summarize_value_portfolio
 from backend.src.api import summarize_value_by_segment
 from backend.src.api import calculate_segment_lift_vs_baseline
@@ -39,6 +42,62 @@ def test_weighted_attribute_coverage_calculation():
 def test_weighted_attribute_coverage_ignores_zero_or_negative_weights():
     records = [{"title": "A"}]
     assert calculate_weighted_attribute_coverage(records, {"title": 0, "doi": -2}) == 0.0
+
+
+def test_extract_openalex_match_projects_top_result():
+    payload = {
+        "results": [
+            {
+                "id": "https://openalex.org/I123",
+                "display_name": "OpenAI Research",
+                "homepage_url": "https://www.openai.com/",
+                "works_count": 420,
+                "cited_by_count": 8400,
+                "geo": {"country_code": "US"},
+                "x_concepts": [{"display_name": "Artificial Intelligence"}],
+            }
+        ]
+    }
+
+    match = extract_openalex_match(payload)
+
+    assert match == {
+        "id": "https://openalex.org/I123",
+        "display_name": "OpenAI Research",
+        "country_code": "US",
+        "works_count": 420,
+        "cited_by_count": 8400,
+        "homepage_url": "https://www.openai.com/",
+        "homepage_domain": "openai.com",
+        "topic": "Artificial Intelligence",
+    }
+
+
+def test_merge_openalex_match_fills_missing_fields():
+    lead = {"company": "", "domain": "", "industry": "", "country": ""}
+    match = {
+        "id": "https://openalex.org/I123",
+        "display_name": "OpenAI Research",
+        "country_code": "US",
+        "works_count": 420,
+        "cited_by_count": 8400,
+        "homepage_url": "https://www.openai.com/",
+        "homepage_domain": "openai.com",
+        "topic": "Artificial Intelligence",
+    }
+
+    enriched = merge_openalex_match(lead, match)
+
+    assert enriched["company"] == "OpenAI Research"
+    assert enriched["domain"] == "openai.com"
+    assert enriched["industry"] == "Artificial Intelligence"
+    assert enriched["country"] == "US"
+    assert enriched["openalex_id"] == "https://openalex.org/I123"
+
+
+def test_calculate_lead_value_score_rewards_coverage_and_footprint():
+    assert calculate_lead_value_score(0.5, None) == 30.0
+    assert calculate_lead_value_score(1.0, {"works_count": 5000, "cited_by_count": 20000}) == 100.0
 
 
 def test_summarize_value_portfolio():
@@ -130,6 +189,7 @@ def test_batch_enrich_leads_empty():
     result = batch_enrich_leads([])
     assert result["stats"]["total"] == 0
     assert result["enriched"] == []
+    assert result["stats"]["matched_count"] == 0
 
 
 def test_batch_enrich_leads_with_data():
@@ -142,6 +202,47 @@ def test_batch_enrich_leads_with_data():
     assert result["stats"]["total"] == 2
     assert len(result["enriched"]) == 2
     assert result["enriched"][0]["_enrichment"]["coverage"] == 1.0
+
+
+def test_batch_enrich_leads_with_openalex_lookup_improves_coverage():
+    from backend.src.api import batch_enrich_leads
+
+    leads = [{"company": "", "domain": "", "industry": "", "employee_count": None}]
+
+    def fake_lookup(_lead):
+        return {
+            "results": [
+                {
+                    "id": "https://openalex.org/I123",
+                    "display_name": "OpenAI Research",
+                    "homepage_url": "https://openai.com",
+                    "works_count": 420,
+                    "cited_by_count": 8400,
+                    "geo": {"country_code": "US"},
+                    "x_concepts": [{"display_name": "Artificial Intelligence"}],
+                }
+            ]
+        }
+
+    result = batch_enrich_leads(
+        leads,
+        {
+            "fields": ["company", "domain", "industry", "employee_count"],
+            "lookup_fn": fake_lookup,
+        },
+    )
+
+    enriched = result["enriched"][0]
+    assert result["stats"]["matched_count"] == 1
+    assert result["stats"]["improved_count"] == 1
+    assert result["stats"]["avg_coverage_before"] == 0.0
+    assert result["stats"]["avg_coverage_after"] == 0.75
+    assert enriched["company"] == "OpenAI Research"
+    assert enriched["domain"] == "openai.com"
+    assert enriched["industry"] == "Artificial Intelligence"
+    assert enriched["_enrichment"]["coverage_before"] == 0.0
+    assert enriched["_enrichment"]["coverage"] == 0.75
+    assert enriched["_enrichment"]["value_band"] == "medium"
 
 
 def test_normalize_required_fields_trims_and_fills_missing():
@@ -171,9 +272,15 @@ def test_batch_enrich_leads_applies_required_field_normalization():
 
 def test_enrichment_priority_score():
     from backend.src.api import get_enrichment_priority_score
-    complete_lead = {"company": "X", "domain": "x.com", "email": "a@x.com", "industry": "Tech", "employee_count": 50}
+    complete_lead = {
+        "company": "X",
+        "domain": "x.com",
+        "email": "a@x.com",
+        "industry": "Tech",
+        "employee_count": 50,
+    }
     incomplete_lead = {"company": "Y"}
-    
+
     assert get_enrichment_priority_score(complete_lead) == 0
     assert get_enrichment_priority_score(incomplete_lead) > 0
 
@@ -195,8 +302,3 @@ def test_prioritize_leads_by_enrichment_gap_orders_by_missing_weight():
 def test_prioritize_leads_by_enrichment_gap_empty():
     from backend.src.api import prioritize_leads_by_enrichment_gap
     assert prioritize_leads_by_enrichment_gap([]) == []
-
-
-def test_dummy_openalex_function():
-    from backend.src.api import dummy_openalex_function
-    assert dummy_openalex_function() == "This is a dummy function for ISSUE-001."
