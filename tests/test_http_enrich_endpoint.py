@@ -22,15 +22,17 @@ def test_enrich_endpoint_shape():
 def test_enrich_endpoint_with_custom_config():
     """Verify custom config is applied correctly."""
     from backend.src.api import batch_enrich_leads
-    
+
     leads = [
         {"name": "John", "email": "john@test.com", "phone": "123456"}
     ]
-    
+
     config = {"fields": ["name", "email", "phone"]}
     result = batch_enrich_leads(leads, config)
-    
+
     assert result["enriched"][0]["_enrichment"]["coverage"] == 1.0
+    assert result["stats"]["coverage_rate"] == 1.0
+    assert result["stats"]["enrichment_rate"] == 1.0
 
 
 def test_enrich_endpoint_empty_leads():

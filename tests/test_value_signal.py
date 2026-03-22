@@ -41,6 +41,11 @@ def test_weighted_attribute_coverage_ignores_zero_or_negative_weights():
     assert calculate_weighted_attribute_coverage(records, {"title": 0, "doi": -2}) == 0.0
 
 
+def test_weighted_attribute_coverage_ignores_invalid_weights():
+    records = [{"title": "A"}]
+    assert calculate_weighted_attribute_coverage(records, {"title": "high", "doi": None}) == 0.0
+
+
 def test_summarize_value_portfolio():
     out = summarize_value_portfolio([
         {"accountId": "a1", "valueScore": 90},
@@ -167,6 +172,19 @@ def test_batch_enrich_leads_applies_required_field_normalization():
     assert enriched["domain"] == ""
     assert enriched["employee_count"] == ""
     assert enriched["_enrichment"]["coverage"] == 0.5
+
+
+def test_batch_enrich_leads_reports_coverage_and_enrichment_rates():
+    from backend.src.api import batch_enrich_leads
+
+    leads = [
+        {"company": "Acme", "domain": "acme.com", "industry": "Tech"},
+        {"company": "Beta", "domain": "", "industry": "Finance"},
+    ]
+    result = batch_enrich_leads(leads)
+
+    assert result["stats"]["coverage_rate"] == 0.625
+    assert result["stats"]["enrichment_rate"] == 0.5
 
 
 def test_enrichment_priority_score():

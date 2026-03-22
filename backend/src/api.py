@@ -1,5 +1,13 @@
 from datetime import datetime, timezone
 
+def _coerce_positive_float(raw_value):
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
 def get_sample_payload():
     return {
         "component": "lf-openalex-enrichment-mvp",
@@ -34,7 +42,11 @@ def calculate_weighted_attribute_coverage(records, field_weights):
     if not records or not field_weights:
         return 0.0
 
-    normalized = {k: float(v) for k, v in field_weights.items() if float(v) > 0}
+    normalized = {}
+    for field, raw_weight in field_weights.items():
+        weight = _coerce_positive_float(raw_weight)
+        if weight is not None:
+            normalized[field] = weight
     if not normalized:
         return 0.0
 
@@ -194,10 +206,12 @@ def batch_enrich_leads(leads, enrichment_config=None):
 
     enriched = []
     enriched_count = 0
+    total_coverage = 0.0
 
     for lead in leads:
         normalized_lead = normalize_required_fields(lead, required_fields)
         coverage = calculate_attribute_coverage([normalized_lead], required_fields)
+        total_coverage += coverage
         enriched_lead = {
             **normalized_lead,
             "_enrichment": {
@@ -215,7 +229,8 @@ def batch_enrich_leads(leads, enrichment_config=None):
         "stats": {
             "total": len(leads),
             "enriched_count": enriched_count,
-            "coverage_rate": round(enriched_count / len(leads), 4) if leads else 0.0
+            "coverage_rate": round(total_coverage / len(leads), 4) if leads else 0.0,
+            "enrichment_rate": round(enriched_count / len(leads), 4) if leads else 0.0,
         }
     }
 

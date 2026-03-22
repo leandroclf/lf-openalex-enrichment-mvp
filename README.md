@@ -104,7 +104,8 @@ Resposta esperada:
   "stats": {
     "total": 2,
     "enriched_count": 1,
-    "coverage_rate": 0.5
+    "coverage_rate": 0.625,
+    "enrichment_rate": 0.5
   },
   "processed_at": "2026-02-28T14:30:00Z"
 }

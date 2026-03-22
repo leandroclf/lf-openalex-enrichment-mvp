@@ -42,25 +42,11 @@ def run_smoke_check():
                         compile(f.read(), filepath, 'exec')
 
                     # 2. Attempt to import (without executing __main__ or actual test runners)
-                    # This helps catch ImportError due to unresolved dependencies or incorrect paths
-                    # Use a unique loader to avoid conflicts
+                    # This helps catch ImportError due to unresolved dependencies or incorrect paths.
                     spec = importlib.util.spec_from_file_location(module_name, filepath)
                     if spec and spec.loader:
-                        # Create a module object but don't execute its top-level code if it has a __name__ == "__main__" guard
                         module = importlib.util.module_from_spec(spec)
-                        
-                        # Temporarily override __name__ to prevent guarded code from running
-                        original_name = getattr(module, '__name__', None)
-                        module.__name__ = '__temp_module_for_smoke_check__' # Prevent __main__ block from running
-
-                        try:
-                            spec.loader.exec_module(module)
-                        finally:
-                            # Restore original __name__ if it existed
-                            if original_name is not None:
-                                module.__name__ = original_name
-                            else:
-                                delattr(module, '__name__') # Clean up if it was newly set
+                        spec.loader.exec_module(module)
 
                 except SyntaxError as e:
                     failures.append(f"Syntax error in {filepath}: {e}")
