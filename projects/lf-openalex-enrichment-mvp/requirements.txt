@@ -1,0 +1,2 @@
+# Dependencies for lf-openalex-enrichment-mvp (workflow compatibility shim)
+# Keep in sync with the repository root requirements when needed.
