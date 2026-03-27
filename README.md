@@ -74,7 +74,7 @@ Para configurar e executar o projeto localmente:
 4.  **Execute testes:**
     ```bash
     PYTHONPATH=. python3 tools/smoke_check.py  # smoke tests
-    PYTHONPATH=. pytest -v                      # suite completa
+    PYTHONPATH=. pytest -v --capture=no         # suite completa
     ```
 
 ## Exemplos de Uso
