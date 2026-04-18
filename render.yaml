@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: lf-openalex-enrichment-mvp
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 -m backend.src.http_server
+    envVars:
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health

@@ -1,3 +1,4 @@
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from datetime import datetime, timezone
@@ -96,7 +97,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {'error':'not_found','path':self.path})
 
 
-def run(host='0.0.0.0', port=8000):
+def run(host="0.0.0.0", port=None):
+    port = port or int(os.environ.get("PORT", 8000))
     server = HTTPServer((host, port), Handler)
     print(f'Starting lf-openalex-enrichment-mvp on {host}:{port}')
     server.serve_forever()
