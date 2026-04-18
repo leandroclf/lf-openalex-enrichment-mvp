@@ -2,22 +2,199 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>lf-openalex-enrichment-mvp V0.3</title>
-  <style>body{font-family:Arial,sans-serif;padding:24px} pre{background:#f3f3f3;padding:12px;border-radius:8px}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lf-openalex-enrichment-mvp</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3e;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --high: #34d399;
+      --medium: #6366f1;
+      --low: #f87171;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    .badge { background: var(--primary); color: #fff; font-size: .7rem; font-weight: 700; padding: .2rem .5rem; border-radius: 999px; letter-spacing: .05em; }
+    main { max-width: 960px; margin: 2rem auto; padding: 0 1.5rem; }
+    h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem; }
+    label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .3rem; }
+    input, textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .6rem .8rem; font-size: .9rem; outline: none; transition: border-color .2s; }
+    input:focus, textarea:focus { border-color: var(--primary); }
+    textarea { resize: vertical; min-height: 120px; font-family: monospace; font-size: .82rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; gap: .3rem; }
+    .btn-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+    button { cursor: pointer; border: none; border-radius: 8px; font-size: .9rem; font-weight: 600; padding: .6rem 1.2rem; transition: background .2s, opacity .2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { text-align: left; color: var(--muted); font-weight: 500; padding: .6rem .8rem; border-bottom: 1px solid var(--border); }
+    td { padding: .65rem .8rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    .band { display: inline-block; font-size: .78rem; font-weight: 700; padding: .2rem .55rem; border-radius: 6px; }
+    .band-High { background: rgba(52,211,153,.15); color: var(--high); }
+    .band-Medium { background: rgba(99,102,241,.15); color: var(--medium); }
+    .band-Low { background: rgba(248,113,113,.15); color: var(--low); }
+    .score-bar { display: flex; align-items: center; gap: .5rem; }
+    .bar { height: 6px; border-radius: 3px; background: var(--border); flex: 1; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .hint { font-size: .8rem; color: var(--muted); margin-top: .5rem; }
+    #result-section { display: none; }
+    .summary-row { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: .2rem; }
+    .stat-val { font-size: 1.6rem; font-weight: 700; }
+    .stat-label { font-size: .78rem; color: var(--muted); }
+  </style>
 </head>
 <body>
-  <h1>lf-openalex-enrichment-mvp — V0.3</h1>
-  <p>Frontend consumindo endpoint <code>/sample</code> com fallback em arquivo local.</p>
-  <pre id="out">carregando...</pre>
+  <header>
+    <h1>lf-openalex-enrichment-mvp</h1>
+    <span class="badge">MVP</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Enriquecimento de Leads</h2>
+      <p class="hint" style="margin-bottom:1rem">Adicione um lead por linha no formato: <code>Empresa, Domínio, E-mail, Indústria, Funcionários</code>. Deixe campos em branco para simular dados faltantes.</p>
+
+      <div class="field" style="margin-bottom:1rem">
+        <label for="leads-input">Leads (CSV)</label>
+        <textarea id="leads-input" placeholder="Acme Corp, acme.com, contato@acme.com, Tecnologia, 150
+Beta Inc, beta.io, , SaaS,
+Gamma Ltda, , , ,"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="enrich()">Enriquecer</button>
+        <button class="btn-ghost" onclick="loadExample()">Carregar Exemplo</button>
+        <button class="btn-ghost" onclick="clearAll()">Limpar</button>
+      </div>
+    </div>
+
+    <div id="result-section">
+      <div class="card">
+        <h2>Resultado</h2>
+        <div class="summary-row" id="summary-row"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Domínio</th>
+              <th>Coverage</th>
+              <th>Score</th>
+              <th>Banda</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
   <script>
-    const out = document.getElementById('out');
-    fetch('http://localhost:8000/sample')
-      .then(r => { if(!r.ok) throw new Error('http'); return r.json(); })
-      .then(d => out.textContent = JSON.stringify(d, null, 2))
-      .catch(() => fetch('../data/sample-output.json')
-        .then(r => r.json())
-        .then(d => out.textContent = JSON.stringify({fallback:true, ...d}, null, 2))
-        .catch(() => out.textContent = 'erro ao carregar dados'));
+    const FIELDS = ['company', 'domain', 'email', 'industry', 'employee_count'];
+    const LABELS = ['Empresa', 'Domínio', 'E-mail', 'Indústria', 'Funcionários'];
+
+    function parsedLeads() {
+      const raw = document.getElementById('leads-input').value.trim();
+      if (!raw) return [];
+      return raw.split('\n').filter(l => l.trim()).map(line => {
+        const parts = line.split(',').map(p => p.trim());
+        return {
+          company: parts[0] || '',
+          domain: parts[1] || '',
+          email: parts[2] || '',
+          industry: parts[3] || '',
+          employee_count: parts[4] || '',
+        };
+      });
+    }
+
+    function bandColor(band) {
+      return band === 'High' ? '#34d399' : band === 'Medium' ? '#6366f1' : '#f87171';
+    }
+
+    function enrich() {
+      const leads = parsedLeads();
+      if (!leads.length) return;
+
+      const enriched = leads.map(l => {
+        const filled = FIELDS.filter(f => l[f] && l[f].trim()).length;
+        const coverage = filled / FIELDS.length;
+        const score = coverage * 100;
+        const band = score >= 80 ? 'High' : score >= 50 ? 'Medium' : 'Low';
+        return { ...l, coverage: coverage.toFixed(2), score: score.toFixed(0), band };
+      });
+
+      renderTable(enriched);
+    }
+
+    function renderTable(enriched) {
+      const tbody = document.getElementById('result-body');
+      tbody.innerHTML = '';
+
+      const avgScore = enriched.reduce((s, e) => s + Number(e.score), 0) / enriched.length;
+      const high = enriched.filter(e => e.band === 'High').length;
+      const medium = enriched.filter(e => e.band === 'Medium').length;
+      const low = enriched.filter(e => e.band === 'Low').length;
+
+      document.getElementById('summary-row').innerHTML = `
+        <div class="stat"><span class="stat-val">${enriched.length}</span><span class="stat-label">Total de Leads</span></div>
+        <div class="stat"><span class="stat-val" style="color:var(--success)">${high}</span><span class="stat-label">High</span></div>
+        <div class="stat"><span class="stat-val" style="color:var(--medium)">${medium}</span><span class="stat-label">Medium</span></div>
+        <div class="stat"><span class="stat-val" style="color:var(--danger)">${low}</span><span class="stat-label">Low</span></div>
+        <div class="stat"><span class="stat-val">${avgScore.toFixed(0)}%</span><span class="stat-label">Score Médio</span></div>
+      `;
+
+      enriched.forEach(e => {
+        const color = bandColor(e.band);
+        const pct = Number(e.score);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${e.company || '<em style="color:var(--muted)">—</em>'}</td>
+          <td style="color:var(--muted)">${e.domain || '—'}</td>
+          <td>
+            <div class="score-bar">
+              <div class="bar"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+              <span style="font-size:.8rem;color:var(--muted);white-space:nowrap">${(Number(e.coverage)*100).toFixed(0)}%</span>
+            </div>
+          </td>
+          <td style="font-weight:700">${e.score}</td>
+          <td><span class="band band-${e.band}">${e.band}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('result-section').style.display = 'block';
+    }
+
+    function loadExample() {
+      document.getElementById('leads-input').value =
+        'Acme Corp, acme.com, contato@acme.com, Tecnologia, 150\n' +
+        'Beta Inc, beta.io, , SaaS,\n' +
+        'Gamma Ltda, , , ,\n' +
+        'Delta SA, delta.com.br, delta@delta.com.br, Indústria, 800\n' +
+        'Epsilon ME, , contato@eps.io, ,';
+    }
+
+    function clearAll() {
+      document.getElementById('leads-input').value = '';
+      document.getElementById('result-section').style.display = 'none';
+    }
   </script>
 </body>
 </html>

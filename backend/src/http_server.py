@@ -1,7 +1,14 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from datetime import datetime, timezone
-from backend.src.api import get_sample_payload, batch_enrich_leads
+from backend.src.api import (
+    get_sample_payload,
+    batch_enrich_leads,
+    build_value_signal_summary,
+    clamp_value_score,
+    classify_value_band,
+    prioritize_leads_by_enrichment_gap,
+)
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, payload):
@@ -51,7 +58,41 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(500, {'error': 'internal_error', 'message': str(e)})
                 return
-        
+
+        if self.path == '/v1/value-score':
+            try:
+                body = self._read_body()
+                if not body:
+                    self._send(400, {'error': 'missing_body'})
+                    return
+                account_id = body.get('accountId')
+                score = body.get('score')
+                if account_id is None or score is None:
+                    self._send(400, {'error': 'missing_fields', 'required': ['accountId', 'score']})
+                    return
+                result = build_value_signal_summary(account_id, score)
+                result['processed_at'] = datetime.now(timezone.utc).isoformat()
+                self._send(200, result)
+                return
+            except Exception as e:
+                self._send(500, {'error': 'internal_error', 'message': str(e)})
+                return
+
+        if self.path == '/v1/leads/prioritize':
+            try:
+                body = self._read_body()
+                if not body:
+                    self._send(400, {'error': 'missing_body'})
+                    return
+                leads = body.get('leads', [])
+                weights = body.get('weights')
+                result = prioritize_leads_by_enrichment_gap(leads, weights)
+                self._send(200, {'prioritized': result, 'total': len(result), 'processed_at': datetime.now(timezone.utc).isoformat()})
+                return
+            except Exception as e:
+                self._send(500, {'error': 'internal_error', 'message': str(e)})
+                return
+
         self._send(404, {'error':'not_found','path':self.path})
 
 
