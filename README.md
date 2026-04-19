@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://www.postman.com/lfsolucoes)
 
 Plataforma de **Enriquecimento B2B** com dados do [OpenAlex](https://openalex.org). Transforma listas brutas de leads em inteligência acionável: calcula cobertura de atributos, classifica contas por banda de valor e prioriza prospects por gap de enriquecimento.
 
