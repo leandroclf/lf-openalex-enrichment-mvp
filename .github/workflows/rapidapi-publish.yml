@@ -1,0 +1,21 @@
+name: Publish to RapidAPI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/openapi.yaml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: RapidAPI/create_or_update_rapidapi_listing@v2
+        with:
+          x_rapidapi_key: ${{ secrets.RAPIDAPI_KEY }}
+          x_rapidapi_graphql_host: graphql.rapidapi.com
+          owner_id: leandroclf
+          api_version_name: v1.0
+          openapi_spec_path: docs/openapi.yaml
