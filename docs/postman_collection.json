@@ -1,0 +1,410 @@
+{
+  "info": {
+    "_postman_id": "lf-openalex-enrichment-mvp-collection",
+    "name": "lf-openalex-enrichment-mvp",
+    "description": "Coleção completa da API de Enriquecimento B2B com OpenAlex.\n\nPermite enriquecer leads, calcular scores de valor e priorizar prospects por gap de enriquecimento.\n\n**URL de Produção:** https://lf-openalex-enrichment-mvp.onrender.com\n\nImporte também o environment `postman_environment.json` para configurar as variáveis `{{base_url}}` e `{{base_url_local}}`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://lf-openalex-enrichment-mvp.onrender.com",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Endpoints para verificação de saúde e disponibilidade do serviço.",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica se o serviço está operacional. Use este endpoint em monitoramentos e health checks de infraestrutura.\n\n**Resposta esperada:** `{\"status\":\"ok\",\"service\":\"lf-openalex-enrichment-mvp\"}`"
+          },
+          "response": [
+            {
+              "name": "200 - Serviço operacional",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": ["{{base_url}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\",\n  \"service\": \"lf-openalex-enrichment-mvp\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Enrichment",
+      "description": "Endpoints de enriquecimento de leads B2B com dados do OpenAlex.",
+      "item": [
+        {
+          "name": "GET /sample",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sample",
+              "host": ["{{base_url}}"],
+              "path": ["sample"]
+            },
+            "description": "Retorna um payload de exemplo com metadados do serviço. Útil para verificar a estrutura de resposta e confirmar que a integração está correta.\n\nO campo `transport` sempre será `\"http\"` neste endpoint."
+          },
+          "response": [
+            {
+              "name": "200 - Payload de exemplo",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sample",
+                  "host": ["{{base_url}}"],
+                  "path": ["sample"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"component\": \"lf-openalex-enrichment-mvp\",\n  \"source\": \"openalex\",\n  \"status\": \"ok\",\n  \"generatedAt\": \"2026-04-18T10:00:00+00:00\",\n  \"transport\": \"http\",\n  \"generatedAtHttp\": \"2026-04-18T10:00:00+00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /enrich",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leads\": [\n    {\n      \"company\": \"Acme Corp\",\n      \"domain\": \"acme.com\",\n      \"industry\": \"Tecnologia\",\n      \"employee_count\": 200\n    },\n    {\n      \"company\": \"Beta Inc\",\n      \"domain\": \"\",\n      \"industry\": \"Finanças\"\n    }\n  ],\n  \"config\": {\n    \"fields\": [\"company\", \"domain\", \"industry\", \"employee_count\"]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/enrich",
+              "host": ["{{base_url}}"],
+              "path": ["enrich"]
+            },
+            "description": "Processa um lote de leads B2B e retorna dados enriquecidos com métricas de cobertura de atributos.\n\nPara cada lead é calculado o campo `_enrichment.coverage` (0 a 1), indicando a proporção de campos obrigatórios preenchidos.\n\n**Um lead é considerado enriquecido quando `coverage > 0.5`.**\n\n**Campos avaliados por padrão:** `company`, `domain`, `industry`, `employee_count`.\n\nO parâmetro `config.fields` permite customizar os campos avaliados.\n\n**Campos da resposta:**\n- `enriched`: lista de leads com `_enrichment` adicionado\n- `stats.total`: total de leads processados\n- `stats.enriched_count`: leads com coverage > 0.5\n- `stats.coverage_rate`: média de cobertura de todos os leads\n- `stats.enrichment_rate`: proporção de leads enriquecidos"
+          },
+          "response": [
+            {
+              "name": "200 - Leads enriquecidos",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"leads\": [\n    {\n      \"company\": \"Acme Corp\",\n      \"domain\": \"acme.com\",\n      \"industry\": \"Tecnologia\",\n      \"employee_count\": 200\n    },\n    {\n      \"company\": \"Beta Inc\",\n      \"domain\": \"\",\n      \"industry\": \"Finanças\"\n    }\n  ],\n  \"config\": null\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/enrich",
+                  "host": ["{{base_url}}"],
+                  "path": ["enrich"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"enriched\": [\n    {\n      \"company\": \"Acme Corp\",\n      \"domain\": \"acme.com\",\n      \"industry\": \"Tecnologia\",\n      \"employee_count\": 200,\n      \"_enrichment\": {\n        \"coverage\": 1.0,\n        \"processed_at\": \"2026-04-18T10:00:00+00:00\",\n        \"source\": \"openalex\"\n      }\n    },\n    {\n      \"company\": \"Beta Inc\",\n      \"domain\": \"\",\n      \"industry\": \"Finanças\",\n      \"employee_count\": \"\",\n      \"_enrichment\": {\n        \"coverage\": 0.5,\n        \"processed_at\": \"2026-04-18T10:00:00+00:00\",\n        \"source\": \"openalex\"\n      }\n    }\n  ],\n  \"stats\": {\n    \"total\": 2,\n    \"enriched_count\": 1,\n    \"coverage_rate\": 0.75,\n    \"enrichment_rate\": 0.5\n  },\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Value Score",
+      "description": "Endpoints de classificação de contas por score e banda de valor.",
+      "item": [
+        {
+          "name": "POST /v1/value-score",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"acme-001\",\n  \"score\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/value-score",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "value-score"]
+            },
+            "description": "Recebe o `accountId` e um `score` numérico (0–100) e retorna a classificação em banda de valor.\n\n**Lógica de bandas:**\n- `score >= 80` → `high`\n- `score >= 50` → `medium`  \n- `score < 50` → `low`\n\nO score é normalizado (clamped) para o intervalo [0, 100]. Valores negativos viram 0 e valores acima de 100 viram 100.\n\n**Campos obrigatórios:** `accountId`, `score`"
+          },
+          "response": [
+            {
+              "name": "200 - Band high",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"acme-001\",\n  \"score\": 80\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/value-score",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "value-score"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"accountId\": \"acme-001\",\n  \"band\": \"high\",\n  \"score\": 80.0,\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            },
+            {
+              "name": "200 - Band medium",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"beta-002\",\n  \"score\": 65\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/value-score",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "value-score"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"accountId\": \"beta-002\",\n  \"band\": \"medium\",\n  \"score\": 65.0,\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            },
+            {
+              "name": "200 - Band low",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"gama-003\",\n  \"score\": 30\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/value-score",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "value-score"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"accountId\": \"gama-003\",\n  \"band\": \"low\",\n  \"score\": 30.0,\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            },
+            {
+              "name": "400 - Campos obrigatórios ausentes",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"acme-001\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/value-score",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "value-score"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": \"missing_fields\",\n  \"required\": [\"accountId\", \"score\"]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lead Prioritization",
+      "description": "Endpoints de priorização de leads por gap de enriquecimento.",
+      "item": [
+        {
+          "name": "POST /v1/leads/prioritize",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leads\": [\n    {\n      \"id\": \"l1\",\n      \"company\": \"Acme\",\n      \"domain\": \"acme.com\",\n      \"coverage\": 0.4\n    },\n    {\n      \"id\": \"l2\",\n      \"company\": \"Beta\",\n      \"coverage\": 0.8\n    }\n  ],\n  \"weights\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/leads/prioritize",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leads", "prioritize"]
+            },
+            "description": "Ordena uma lista de leads por prioridade de enriquecimento. Leads com mais campos faltantes recebem score maior e aparecem no topo da lista.\n\n**Pesos padrão por campo:**\n- `company`: 3\n- `domain`: 2\n- `email`: 2\n- `industry`: 1\n- `employee_count`: 1\n\nO campo `_priorityScore` é adicionado a cada lead na resposta. Em caso de empate no score, a ordem original de entrada é preservada.\n\nPasse `weights: null` para usar os pesos padrão, ou forneça um objeto com pesos customizados.\n\n**Caso de uso:** Use este endpoint antes de iniciar campanhas de enriquecimento para identificar quais leads têm maior lacuna de dados e devem ser processados primeiro."
+          },
+          "response": [
+            {
+              "name": "200 - Leads priorizados",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"leads\": [\n    {\n      \"id\": \"l1\",\n      \"company\": \"Acme\",\n      \"domain\": \"acme.com\",\n      \"coverage\": 0.4\n    },\n    {\n      \"id\": \"l2\",\n      \"company\": \"Beta\",\n      \"coverage\": 0.8\n    }\n  ],\n  \"weights\": null\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/leads/prioritize",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "leads", "prioritize"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"prioritized\": [\n    {\n      \"id\": \"l2\",\n      \"company\": \"Beta\",\n      \"coverage\": 0.8,\n      \"_priorityScore\": 4\n    },\n    {\n      \"id\": \"l1\",\n      \"company\": \"Acme\",\n      \"domain\": \"acme.com\",\n      \"coverage\": 0.4,\n      \"_priorityScore\": 2\n    }\n  ],\n  \"total\": 2,\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            },
+            {
+              "name": "200 - Com pesos customizados",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"leads\": [\n    {\n      \"id\": \"l1\",\n      \"company\": \"Acme\",\n      \"domain\": \"acme.com\"\n    },\n    {\n      \"id\": \"l2\",\n      \"company\": \"Beta\"\n    }\n  ],\n  \"weights\": {\n    \"company\": 5,\n    \"domain\": 3,\n    \"email\": 4\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/v1/leads/prioritize",
+                  "host": ["{{base_url}}"],
+                  "path": ["v1", "leads", "prioritize"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"prioritized\": [\n    {\n      \"id\": \"l2\",\n      \"company\": \"Beta\",\n      \"_priorityScore\": 7\n    },\n    {\n      \"id\": \"l1\",\n      \"company\": \"Acme\",\n      \"domain\": \"acme.com\",\n      \"_priorityScore\": 4\n    }\n  ],\n  \"total\": 2,\n  \"processed_at\": \"2026-04-18T10:00:00+00:00\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

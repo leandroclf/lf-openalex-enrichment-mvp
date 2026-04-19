@@ -1,0 +1,585 @@
+openapi: 3.0.3
+info:
+  title: lf-openalex-enrichment-mvp API
+  description: |
+    API de Enriquecimento B2B com dados do OpenAlex. Permite enriquecer leads,
+    calcular scores de valor e priorizar prospects por gap de enriquecimento.
+
+    **URL de Produção:** https://lf-openalex-enrichment-mvp.onrender.com
+  version: "1.0.0"
+  contact:
+    email: leandro.freire@hiveplace.com.br
+
+servers:
+  - url: https://lf-openalex-enrichment-mvp.onrender.com
+    description: Produção (Render)
+  - url: http://localhost:8000
+    description: Desenvolvimento local
+
+tags:
+  - name: Health
+    description: Verificação de saúde e disponibilidade do serviço
+  - name: Enrichment
+    description: Enriquecimento de leads B2B com dados do OpenAlex
+  - name: Value Score
+    description: Classificação de contas por score e banda de valor
+  - name: Lead Prioritization
+    description: Priorização de leads por gap de enriquecimento
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Verificar saúde do serviço
+      description: |
+        Retorna o status atual do serviço. Use este endpoint para monitorar
+        disponibilidade e confirmar que o serviço está operacional.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Serviço operacional
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: lf-openalex-enrichment-mvp
+
+  /sample:
+    get:
+      tags:
+        - Enrichment
+      summary: Obter payload de exemplo
+      description: |
+        Retorna um payload de exemplo com metadados do serviço. Útil para
+        verificar a estrutura de resposta e o funcionamento da integração.
+      operationId: getSample
+      responses:
+        "200":
+          description: Payload de exemplo gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SampleResponse"
+              example:
+                component: lf-openalex-enrichment-mvp
+                source: openalex
+                status: ok
+                generatedAt: "2026-04-18T10:00:00+00:00"
+                transport: http
+                generatedAtHttp: "2026-04-18T10:00:00+00:00"
+
+  /enrich:
+    post:
+      tags:
+        - Enrichment
+      summary: Enriquecer lote de leads
+      description: |
+        Processa um lote de leads B2B e retorna dados enriquecidos com métricas
+        de cobertura de atributos. Para cada lead é calculado o `coverage` (0 a 1),
+        indicando a proporção de campos obrigatórios preenchidos.
+
+        Um lead é considerado "enriquecido" quando `coverage > 0.5`.
+
+        Os campos avaliados por padrão são: `company`, `domain`, `industry`, `employee_count`.
+        É possível customizar via `config.fields`.
+      operationId: enrichLeads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichRequest"
+            example:
+              leads:
+                - company: Acme Corp
+                  domain: acme.com
+                  industry: Tecnologia
+                  employee_count: 200
+                - company: Beta Inc
+                  domain: ""
+                  industry: Finanças
+              config:
+                fields:
+                  - company
+                  - domain
+                  - industry
+                  - employee_count
+      responses:
+        "200":
+          description: Leads enriquecidos com métricas de cobertura
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichResponse"
+              example:
+                enriched:
+                  - company: Acme Corp
+                    domain: acme.com
+                    industry: Tecnologia
+                    employee_count: 200
+                    _enrichment:
+                      coverage: 1.0
+                      processed_at: "2026-04-18T10:00:00+00:00"
+                      source: openalex
+                  - company: Beta Inc
+                    domain: ""
+                    industry: Finanças
+                    employee_count: ""
+                    _enrichment:
+                      coverage: 0.5
+                      processed_at: "2026-04-18T10:00:00+00:00"
+                      source: openalex
+                stats:
+                  total: 2
+                  enriched_count: 1
+                  coverage_rate: 0.75
+                  enrichment_rate: 0.5
+                processed_at: "2026-04-18T10:00:00+00:00"
+        "400":
+          description: Body ausente ou JSON inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_body:
+                  value:
+                    error: missing_body
+                invalid_json:
+                  value:
+                    error: invalid_json
+        "500":
+          description: Erro interno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+
+  /v1/value-score:
+    post:
+      tags:
+        - Value Score
+      summary: Classificar conta por banda de valor
+      description: |
+        Recebe o `accountId` e um `score` numérico (0–100) e retorna a
+        classificação em banda de valor com timestamp de processamento.
+
+        **Lógica de bandas:**
+        - `score >= 80` → `high`
+        - `score >= 50` → `medium`
+        - `score < 50` → `low`
+
+        O score é normalizado (clamped) para o intervalo [0, 100].
+      operationId: classifyValueScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValueScoreRequest"
+            example:
+              accountId: acme-001
+              score: 80
+      responses:
+        "200":
+          description: Classificação de valor gerada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValueScoreResponse"
+              example:
+                accountId: acme-001
+                band: high
+                score: 80.0
+                processed_at: "2026-04-18T10:00:00+00:00"
+        "400":
+          description: Campos obrigatórios ausentes ou body faltando
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_body:
+                  value:
+                    error: missing_body
+                missing_fields:
+                  value:
+                    error: missing_fields
+                    required:
+                      - accountId
+                      - score
+        "500":
+          description: Erro interno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+
+  /v1/leads/prioritize:
+    post:
+      tags:
+        - Lead Prioritization
+      summary: Priorizar leads por gap de enriquecimento
+      description: |
+        Ordena uma lista de leads por prioridade de enriquecimento. Leads com
+        mais campos faltantes recebem score maior e aparecem no topo da lista.
+
+        **Pesos padrão por campo:**
+        - `company`: 3
+        - `domain`: 2
+        - `email`: 2
+        - `industry`: 1
+        - `employee_count`: 1
+
+        Pesos customizados podem ser passados via `weights`. O campo `_priorityScore`
+        é adicionado a cada lead na resposta.
+      operationId: prioritizeLeads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrioritizeRequest"
+            example:
+              leads:
+                - id: l1
+                  company: Acme
+                  domain: acme.com
+                  coverage: 0.4
+                - id: l2
+                  company: Beta
+                  coverage: 0.8
+              weights: null
+      responses:
+        "200":
+          description: Lista de leads priorizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrioritizeResponse"
+              example:
+                prioritized:
+                  - id: l2
+                    company: Beta
+                    coverage: 0.8
+                    _priorityScore: 4
+                  - id: l1
+                    company: Acme
+                    domain: acme.com
+                    coverage: 0.4
+                    _priorityScore: 2
+                total: 2
+                processed_at: "2026-04-18T10:00:00+00:00"
+        "400":
+          description: Body ausente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Erro interno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+      properties:
+        status:
+          type: string
+          example: ok
+          description: Estado atual do serviço
+        service:
+          type: string
+          example: lf-openalex-enrichment-mvp
+          description: Nome do serviço
+
+    SampleResponse:
+      type: object
+      properties:
+        component:
+          type: string
+          example: lf-openalex-enrichment-mvp
+        source:
+          type: string
+          example: openalex
+        status:
+          type: string
+          example: ok
+        generatedAt:
+          type: string
+          format: date-time
+          description: Timestamp de geração pelo módulo Python
+        transport:
+          type: string
+          example: http
+          description: Canal de transporte (sempre "http" neste endpoint)
+        generatedAtHttp:
+          type: string
+          format: date-time
+          description: Timestamp de geração no handler HTTP
+
+    EnrichRequest:
+      type: object
+      required:
+        - leads
+      properties:
+        leads:
+          type: array
+          description: Lista de leads a enriquecer
+          items:
+            type: object
+            description: Lead com atributos B2B (campos livres)
+            properties:
+              company:
+                type: string
+                example: Acme Corp
+              domain:
+                type: string
+                example: acme.com
+              industry:
+                type: string
+                example: Tecnologia
+              employee_count:
+                type: integer
+                example: 200
+              email:
+                type: string
+                example: contato@acme.com
+        config:
+          type: object
+          nullable: true
+          description: Configuração opcional do enriquecimento
+          properties:
+            fields:
+              type: array
+              description: Campos obrigatórios para cálculo de cobertura
+              items:
+                type: string
+              example:
+                - company
+                - domain
+                - industry
+                - employee_count
+
+    EnrichmentMeta:
+      type: object
+      properties:
+        coverage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Proporção de campos obrigatórios preenchidos (0 a 1)
+          example: 0.75
+        processed_at:
+          type: string
+          format: date-time
+          description: Timestamp de processamento do lead
+        source:
+          type: string
+          example: openalex
+          description: Fonte dos dados de enriquecimento
+
+    EnrichedLead:
+      type: object
+      description: Lead original com metadados de enriquecimento adicionados
+      properties:
+        company:
+          type: string
+        domain:
+          type: string
+        industry:
+          type: string
+        employee_count:
+          type: integer
+        _enrichment:
+          $ref: "#/components/schemas/EnrichmentMeta"
+
+    EnrichStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total de leads processados
+          example: 2
+        enriched_count:
+          type: integer
+          description: Leads com coverage > 0.5 (considerados enriquecidos)
+          example: 1
+        coverage_rate:
+          type: number
+          format: float
+          description: Média de cobertura de todos os leads
+          example: 0.75
+        enrichment_rate:
+          type: number
+          format: float
+          description: Taxa de leads enriquecidos (enriched_count / total)
+          example: 0.5
+
+    EnrichResponse:
+      type: object
+      properties:
+        enriched:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrichedLead"
+        stats:
+          $ref: "#/components/schemas/EnrichStats"
+        processed_at:
+          type: string
+          format: date-time
+          description: Timestamp de processamento do lote
+
+    ValueScoreRequest:
+      type: object
+      required:
+        - accountId
+        - score
+      properties:
+        accountId:
+          type: string
+          description: Identificador único da conta
+          example: acme-001
+        score:
+          type: number
+          format: float
+          description: Score numérico de valor (0 a 100). Valores fora do range são normalizados.
+          example: 80
+
+    ValueScoreResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+          example: acme-001
+        band:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+          description: |
+            Banda de valor calculada:
+            - high: score >= 80
+            - medium: score >= 50
+            - low: score < 50
+          example: high
+        score:
+          type: number
+          format: float
+          description: Score normalizado para o intervalo [0, 100]
+          example: 80.0
+        processed_at:
+          type: string
+          format: date-time
+          description: Timestamp de processamento
+
+    PrioritizeRequest:
+      type: object
+      required:
+        - leads
+      properties:
+        leads:
+          type: array
+          description: Lista de leads a priorizar
+          items:
+            type: object
+            description: Lead com atributos B2B (campos livres)
+            properties:
+              id:
+                type: string
+                example: l1
+              company:
+                type: string
+                example: Acme
+              domain:
+                type: string
+                example: acme.com
+              email:
+                type: string
+              industry:
+                type: string
+              employee_count:
+                type: integer
+              coverage:
+                type: number
+                format: float
+        weights:
+          type: object
+          nullable: true
+          description: |
+            Pesos customizados por campo para o cálculo de prioridade.
+            Campos ausentes recebem score baseado no peso.
+            Padrão: company=3, domain=2, email=2, industry=1, employee_count=1
+          additionalProperties:
+            type: number
+          example:
+            company: 3
+            domain: 2
+            email: 2
+
+    PrioritizedLead:
+      type: object
+      description: Lead com score de prioridade calculado
+      properties:
+        id:
+          type: string
+        company:
+          type: string
+        domain:
+          type: string
+        _priorityScore:
+          type: integer
+          description: Score de prioridade (maior = mais prioritário para enriquecimento)
+          example: 4
+
+    PrioritizeResponse:
+      type: object
+      properties:
+        prioritized:
+          type: array
+          description: Lista de leads ordenada por prioridade (maior gap primeiro)
+          items:
+            $ref: "#/components/schemas/PrioritizedLead"
+        total:
+          type: integer
+          description: Total de leads na lista priorizada
+          example: 2
+        processed_at:
+          type: string
+          format: date-time
+          description: Timestamp de processamento
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: missing_body
+          description: Código do erro
+        required:
+          type: array
+          items:
+            type: string
+          description: Campos obrigatórios ausentes (quando aplicável)
+
+    InternalErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: internal_error
+        message:
+          type: string
+          description: Descrição técnica do erro interno
