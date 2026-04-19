@@ -27,7 +27,7 @@ jobs:
       - uses: RapidAPI/create_or_update_rapidapi_listing@main
         with:
           x_rapidapi_key: ${{ secrets.RAPIDAPI_KEY }}
-          x_rapidapi_graphql_host: graphql.rapidapi.com
-          graphql_url: https://graphql.rapidapi.com/
+          x_rapidapi_graphql_host: platform-graphql.p.rapidapi.com
+          graphql_url: https://platform-graphql.p.rapidapi.com/
           owner_id: leandroclf
           spec_path: docs/openapi.json
