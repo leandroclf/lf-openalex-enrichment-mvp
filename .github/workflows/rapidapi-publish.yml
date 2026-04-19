@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: RapidAPI/create_or_update_rapidapi_listing@v2
+      - uses: RapidAPI/create_or_update_rapidapi_listing@main
         with:
           x_rapidapi_key: ${{ secrets.RAPIDAPI_KEY }}
           x_rapidapi_graphql_host: graphql.rapidapi.com
+          graphql_url: https://graphql.rapidapi.com/
           owner_id: leandroclf
-          api_version_name: v1.0
-          openapi_spec_path: docs/openapi.yaml
+          spec_path: docs/openapi.yaml
