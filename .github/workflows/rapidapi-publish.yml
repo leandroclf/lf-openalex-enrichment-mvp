@@ -12,10 +12,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Convert OpenAPI YAML to JSON
+        run: |
+          python3 -c "
+          import yaml, json
+          with open('docs/openapi.yaml') as f:
+              spec = yaml.safe_load(f)
+          with open('docs/openapi.json', 'w') as f:
+              json.dump(spec, f, indent=2, ensure_ascii=False)
+          print('Converted openapi.yaml to openapi.json')
+          "
+
       - uses: RapidAPI/create_or_update_rapidapi_listing@main
         with:
           x_rapidapi_key: ${{ secrets.RAPIDAPI_KEY }}
           x_rapidapi_graphql_host: graphql.rapidapi.com
           graphql_url: https://graphql.rapidapi.com/
           owner_id: leandroclf
-          spec_path: docs/openapi.yaml
+          spec_path: docs/openapi.json
